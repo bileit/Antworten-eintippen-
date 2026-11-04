@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Quercode-Antworten</title>
+<style>
+:root{--bg:#f6f4ef;--card:#fff;--text:#1d1d1b;--muted:#6b6a64;--accent:#2f6f5e;--accent-text:#fff;--border:#dcd8cd;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#171815;--card:#222320;--text:#efede6;--muted:#9a988f;--accent:#6fc2aa;--accent-text:#10211c;--border:#37382f;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#171815;--card:#222320;--text:#efede6;--muted:#9a988f;--accent:#6fc2aa;--accent-text:#10211c;--border:#37382f;color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.hidden{display:none!important}
+main{max-width:560px;margin:0 auto;padding:24px 16px 48px}
+h1{font-size:1.7rem;margin:0 0 4px}
+p.sub{color:var(--muted);margin:0 0 20px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:16px}
+label{display:block;font-weight:600;margin-bottom:6px;font-size:.9rem}
+input,textarea{width:100%;font:inherit;color:var(--text);background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:10px 12px}
+textarea{min-height:110px;resize:vertical}
+input+label,textarea+label{margin-top:12px}
+button{font:inherit;font-weight:600;background:var(--accent);color:var(--accent-text);border:0;border-radius:10px;padding:11px 18px;margin-top:12px;cursor:pointer}
+button:disabled{opacity:.5;cursor:default}
+a{color:var(--accent)}
+.note{color:var(--muted);font-size:.9rem}
+#status{min-height:1.2em;font-size:.9rem;color:var(--muted);margin-top:8px}
+/* Bildschirm-Ansicht */
+#screen{display:grid;grid-template-columns:300px 1fr;gap:24px;padding:24px;min-height:100vh;max-width:1600px;margin:0 auto}
+@media (max-width:800px){#screen{grid-template-columns:1fr}}
+#side{text-align:center}
+#side h2{margin:0 0 4px;font-size:1.4rem}
+#qrbox{display:flex;justify-content:center;padding:14px;background:#fff;border-radius:14px;margin:12px 0}
+#count{font-size:2.4rem;font-weight:700;color:var(--accent);line-height:1}
+#wall{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px;align-content:start}
+.tile{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;animation:pop .4s ease}
+.tile p{margin:0 0 8px;font-size:1.25rem;white-space:pre-wrap;word-wrap:break-word}
+.tile b{color:var(--accent)}
+.tile small{display:block;color:var(--muted)}
+@keyframes pop{from{transform:scale(.92);opacity:0}to{transform:none;opacity:1}}
+@media (prefers-reduced-motion:reduce){.tile{animation:none}}
+</style>
+</head>
+<body>
+
+<!-- Handy-Ansicht: hier schreiben die Leute -->
+<main id="form">
+  <h1>Schreib etwas ✍️</h1>
+  <p class="sub">Deine Nachricht erscheint sofort auf dem Bildschirm.</p>
+  <div class="card">
+    <label for="name">Dein Name (optional)</label>
+    <input id="name" maxlength="40" placeholder="z. B. Anna">
+    <label for="text">Deine Nachricht</label>
+    <textarea id="text" maxlength="500" placeholder="Was möchtest du schreiben?"></textarea>
+    <button id="send" disabled>Absenden</button>
+    <div id="status"></div>
+  </div>
+  <p class="note"><a href="#screen">Alle Antworten ansehen →</a></p>
+</main>
+
+<!-- Bildschirm-Ansicht: gesammelte Antworten (Beamer/Monitor) -->
+<section id="screen" class="hidden">
+  <aside id="side">
+    <h2>Mitmachen per Quercode</h2>
+    <div id="qrbox"></div>
+    <div id="count">0</div>
+    <div class="note">Antworten</div>
+    <p class="note"><a href="#">Zum Formular</a></p>
+  </aside>
+  <div id="wall"><span class="note">Lade Antworten …</span></div>
+</section>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script>
+(function(){
+  var $=function(id){return document.getElementById(id)};
+  var nameEl=$('name'),textEl=$('text'),sendBtn=$('send'),statusEl=$('status'),wall=$('wall');
+  var db=null,qrDone=false;
+  var base=location.href.split('#')[0];
+
+  function route(){
+    var scr=location.hash==='#screen';
+    $('screen').classList.toggle('hidden',!scr);
+    $('form').classList.toggle('hidden',scr);
+    if(scr&&!qrDone){
+      qrDone=true;
+      try{new QRCode($('qrbox'),{text:base,width:240,height:240,correctLevel:QRCode.CorrectLevel.M})}
+      catch(e){$('qrbox').textContent='Quercode nicht verfügbar'}
+    }
+  }
+  window.addEventListener('hashchange',route); route();
+
+  function esc(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML}
+  function fmt(ts){try{return new Date(ts).toLocaleTimeString('de-CH',{hour:'2-digit',minute:'2-digit'})}catch(e){return ''}}
+
+  function render(docs){
+    $('count').textContent=docs.length;
+    if(!docs.length){wall.innerHTML='<span class="note">Noch keine Antworten – scanne den Quercode und schreibe die erste!</span>';return}
+    wall.innerHTML=docs.map(function(d){
+      var m=d.data()||{};
+      return '<div class="tile"><p>'+esc(m.text||'')+'</p><b>'+esc(m.name||'Anonym')+'</b><small>'+esc(fmt(m.ts))+'</small></div>';
+    }).join('');
+  }
+
+  function update(){sendBtn.disabled=!db||!textEl.value.trim()}
+  textEl.addEventListener('input',update);
+
+  sendBtn.addEventListener('click',function(){
+    var text=textEl.value.trim(); if(!text||!db)return;
+    sendBtn.disabled=true; statusEl.textContent='Sende …';
+    db.collection('messages').add({name:nameEl.value.trim().slice(0,40),text:text.slice(0,500),ts:Date.now()})
+      .then(function(){textEl.value='';statusEl.textContent='Danke, gespeichert! ✓ Du kannst noch eine schreiben.'})
+      .catch(function(){statusEl.textContent='Speichern nicht möglich. Dafür braucht es Schreibrechte (Mitwirkende) auf dieser Seite.'})
+      .then(update);
+  });
+
+  var timer=setTimeout(function(){wall.innerHTML='<span class="note">Antworten sind gerade nicht erreichbar.</span>'},10000);
+  try{
+    if(window.claude&&claude.use){
+      claude.use('db').then(function(d){
+        if(!d){clearTimeout(timer);wall.innerHTML='<span class="note">Bitte anmelden, um Antworten zu sehen.</span>';statusEl.textContent='Bitte anmelden, um zu schreiben.';return}
+        db=d; update();
+        d.collection('messages').orderBy('ts','desc').limit(200).onSnapshot(function(snap){clearTimeout(timer);render(snap.docs)},function(){clearTimeout(timer);wall.innerHTML='<span class="note">Fehler beim Laden.</span>'});
+      });
+    }else{clearTimeout(timer);wall.innerHTML='<span class="note">Nur in der veröffentlichten Seite verfügbar.</span>'}
+  }catch(e){clearTimeout(timer)}
+})();
+</script>
+</body>
+</html>
